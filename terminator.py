@@ -1,62 +1,82 @@
 import os
 import sys
+import platform
+import signal
 import asyncio
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
+import json
 
-load_dotenv()
-token = str(os.getenv("TOKEN"))
-client_id = str(os.getenv("CLIENT_ID"))
-ownerid = int(os.getenv("OWNER"))
-stdout_channel_id = int(os.getenv("STDOUT"))
+with open("/volume1/documents/git/skye-net-terminator/config.json") as f:
+    config = json.load(f)
+
+token = config["TOKEN"]
+client_id = config["CLIENT_ID"]
+ownerid = config["OWNER"]
+stdout_channel_id = config["STDOUT"]
 
 intents = discord.Intents.default()
 intents.members = True
 discord_bot = commands.Bot(command_prefix="!", intents=intents)
+
+script_kill = "pkill -f 'skyenet.py'"
+script_run = "nohup python3 /volume1/documents/git/skye-net/skyenet.py &"
+script_clear_nohup = "> nohup.out"
+script_read_nohup = "cat nohup.out"
 
 def owner():
 	def predicate(interaction:discord.Interaction) -> bool:
 		return interaction.user.id == ownerid
 	return discord.app_commands.check(predicate)
 
+@discord_bot.tree.command(description="Kill Terminator")
+@owner()
+async def die(interaction:discord.Interaction):
+	interaction.followup.send("Terminator TERMINATED")
+	await discord_bot.close()
+
+	if platform.system() == "Windows":
+		os.kill(os.getpid(), signal.SIGTERM)
+	else:
+		os.kill(os.getpid(), signal.SIGKILL)
+
 @discord_bot.tree.command(description="Kill Skye-net")
-@owner
+@owner()
 async def kill(interaction:discord.Interaction):
-	os.system("pkill -f 'skyenet.py'")
+	os.system(script_kill)
 	await interaction.response.send_message("Skye-net TERMINATED")
 
 @discord_bot.tree.command(description="Run Skye-net")
-@owner
+@owner()
 async def run(interaction:discord.Interaction):
-	os.system("> nohup.out")
-	os.system("nohup python3 skyenet.py &")
+	os.system(script_clear_nohup)
+	os.system(script_run)
 	await interaction.response.send_message("Skye-net RESURRECTED")
 
 @discord_bot.tree.command(description="Restart Skye-net")
-@owner
+@owner()
 async def restart(interaction:discord.Interaction):
-	os.system("pkill -f 'skyenet.py'")
-	os.system("> nohup.out")
-	os.system("nohup python3 skyenet.py &")
+	os.system(script_kill)
+	os.system(script_clear_nohup)
+	os.system(script_run)
 	await interaction.response.send_message("Skye-net TERMINATED and RESURRECTED")
 
 @discord_bot.tree.command(description="Check nohup.out")
-@owner
+@owner()
 async def check(interaction:discord.Interaction):
-	output = os.popen("cat nohup.out").read()
+	output = os.popen(script_read_nohup).read()
 	if not output or len(output) == 0:
 		output = "nohup.out is empty"
 	await interaction.response.send_message(output)
 
 @discord_bot.tree.command(description="Run custom commands")
-@owner
-async def run_custom_script(interaction:discord.Interaction, command:str="", message_id:int=0):
+@owner()
+async def script(interaction:discord.Interaction, command:str="", message_id:int=0):
 	if not command and message_id == 0:
 		await interaction.response.send_message("Provide either a single command, or a message_id with multiple commands")
 	elif command and message_id == 0:
 		os.system(command)
-		await interaction.response.send_message("Ran custom command")
+		await interaction.response.send_message(f"Ran custom command `{command}`")
 	elif not command and message_id != 0:
 		commands_message = await interaction.channel.fetch_message(message_id)
 		commands_list = commands_message.content.split("\n")
@@ -65,6 +85,11 @@ async def run_custom_script(interaction:discord.Interaction, command:str="", mes
 		await interaction.response.send_message("Ran custom commands")
 	else:
 		await interaction.response.send_message("Provide either a single command, or a message_id with multiple commands. Not both")
+
+@discord_bot.tree.command(description="Print working directory")
+@owner()
+async def pwd(interaction:discord.Interaction):
+	await interaction.response.send_message(os.getcwd())
 
 @discord_bot.event
 async def on_ready():
