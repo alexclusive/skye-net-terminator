@@ -23,12 +23,14 @@ def owner():
 @discord_bot.tree.command(description="Kill Skye-net")
 @owner
 async def kill(interaction:discord.Interaction):
+	await interaction.response.defer()
 	os.system("pkill -f 'skyenet.py'")
 	await interaction.response.send_message("Skye-net TERMINATED")
 
 @discord_bot.tree.command(description="Run Skye-net")
 @owner
 async def run(interaction:discord.Interaction):
+	await interaction.response.defer()
 	os.system("> nohup.out")
 	os.system("nohup python3 skyenet.py &")
 	await interaction.response.send_message("Skye-net RESURRECTED")
@@ -36,6 +38,7 @@ async def run(interaction:discord.Interaction):
 @discord_bot.tree.command(description="Restart Skye-net")
 @owner
 async def restart(interaction:discord.Interaction):
+	await interaction.response.defer()
 	os.system("pkill -f 'skyenet.py'")
 	os.system("> nohup.out")
 	os.system("nohup python3 skyenet.py &")
@@ -44,6 +47,7 @@ async def restart(interaction:discord.Interaction):
 @discord_bot.tree.command(description="Check nohup.out")
 @owner
 async def check(interaction:discord.Interaction):
+	await interaction.response.defer()
 	output = os.popen("cat nohup.out").read()
 	if not output or len(output) == 0:
 		output = "nohup.out is empty"
@@ -52,6 +56,7 @@ async def check(interaction:discord.Interaction):
 @discord_bot.tree.command(description="Run custom commands")
 @owner
 async def run_custom_script(interaction:discord.Interaction, command:str="", message_id:int=0):
+	await interaction.response.defer()
 	if not command and message_id == 0:
 		await interaction.response.send_message("Provide either a single command, or a message_id with multiple commands")
 	elif command and message_id == 0:
