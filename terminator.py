@@ -54,15 +54,25 @@ async def run(interaction:discord.Interaction):
 	os.system(script_clear_nohup)
 	os.system(script_run)
 	await interaction.response.send_message("Skye-net RESURRECTED")
+	# 5 minute timer to see if skyenet has sent a message to stdout channel ("Skye Net#8886 is ready and online :P")
+	await asyncio.sleep(300)
+	channel = discord_bot.get_channel(stdout_channel_id)
+	messages = await channel.history(limit=10).flatten()
+	found = False
+	for message in messages:
+		if "Skye Net#8886 is ready and online" in message.content:
+			found = True
+			break
+	if not found:
+		await channel.send("Warning: Skye-net did not start correctly.")
+		await check(interaction)
 
 @discord_bot.tree.command(description="Restart Skye-net")
 @owner()
 async def restart(interaction:discord.Interaction):
 	await interaction.response.defer()
-	os.system(script_kill)
-	os.system(script_clear_nohup)
-	os.system(script_run)
-	await interaction.response.send_message("Skye-net TERMINATED and RESURRECTED")
+	await kill(interaction)
+	await run(interaction)
 
 @discord_bot.tree.command(description="Check nohup.out")
 @owner()
