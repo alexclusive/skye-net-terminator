@@ -111,14 +111,18 @@ async def on_ready():
 	await discord_bot.change_presence(status=discord.Status.do_not_disturb, activity=discord.CustomActivity("Watching Skye-net...", type=discord.ActivityType.watching))
 	await discord_bot.tree.sync()
 	print(f"{discord_bot.user} is ready and online >:)")
+	os.system(script_kill)
+	os.system(script_clear_nohup)
+	os.system(script_run)
+	print("Starting Skye-net...")
 
 def send_message(channel:discord.abc.Messageable, message:str) -> None:
 	if len(message) > 2000:  # discord won't allow longer than 2000 characters, so split it up
 		for i in range(0, len(message), 2000):
 			chunk = message[i:i+2000]
-			asyncio.ensure_future(channel.send(chunk))
+			_ = asyncio.ensure_future(channel.send(chunk)) # pretend to save to variable to prevent garbage collection
 	else:
-		asyncio.ensure_future(channel.send(message))
+		_ = asyncio.ensure_future(channel.send(message))
 
 def send_output_to_discord(message:str):
 	message = message.strip()
