@@ -10,6 +10,8 @@ import json
 with open("/volume1/documents/git/skye-net-terminator/config.json") as f:
     config = json.load(f)
 
+bot_ready = False
+
 token = config["TOKEN"]
 client_id = config["CLIENT_ID"]
 ownerid = config["OWNER"]
@@ -24,6 +26,17 @@ script_run = "nohup python3 /volume1/documents/git/skye-net/skyenet.py &"
 script_clear_nohup = "> nohup.out"
 script_read_nohup = "cat nohup.out"
 
+def kill_skyenet():
+	os.system(script_kill)
+
+def run_skyenet():
+	os.system(script_clear_nohup)
+	os.system(script_run)
+
+def restart_skyenet():
+	kill_skyenet()
+	run_skyenet()
+
 def owner():
 	def predicate(interaction:discord.Interaction) -> bool:
 		return interaction.user.id == ownerid
@@ -32,7 +45,8 @@ def owner():
 @discord_bot.tree.command(description="Kill Terminator")
 @owner()
 async def die(interaction:discord.Interaction):
-	interaction.followup.send("Terminator TERMINATED")
+	await interaction.followup.send("Terminator TERMINATED")
+	kill_skyenet()
 	await discord_bot.close()
 
 	if platform.system() == "Windows":
@@ -44,34 +58,21 @@ async def die(interaction:discord.Interaction):
 @owner()
 async def kill(interaction:discord.Interaction):
 	await interaction.response.defer()
-	os.system(script_kill)
+	kill_skyenet()
 	await interaction.response.send_message("Skye-net TERMINATED")
 
 @discord_bot.tree.command(description="Run Skye-net")
 @owner()
 async def run(interaction:discord.Interaction):
 	await interaction.response.defer()
-	os.system(script_clear_nohup)
-	os.system(script_run)
+	run_skyenet()
 	await interaction.response.send_message("Skye-net RESURRECTED")
-	# 5 minute timer to see if skyenet has sent a message to stdout channel ("Skye Net#8886 is ready and online :P")
-	await asyncio.sleep(300)
-	channel = discord_bot.get_channel(stdout_channel_id)
-	messages = await channel.history(limit=10).flatten()
-	found = False
-	for message in messages:
-		if "Skye Net#8886 is ready and online" in message.content:
-			found = True
-			break
-	if not found:
-		await channel.send("Warning: Skye-net did not start correctly.")
-		await check(interaction)
 
 @discord_bot.tree.command(description="Restart Skye-net")
 @owner()
 async def restart(interaction:discord.Interaction):
 	await interaction.response.defer()
-	await kill(interaction)
+	kill_skyenet()
 	await run(interaction)
 
 @discord_bot.tree.command(description="Check nohup.out")
@@ -108,13 +109,15 @@ async def pwd(interaction:discord.Interaction):
 
 @discord_bot.event
 async def on_ready():
+	global bot_ready
 	await discord_bot.change_presence(status=discord.Status.do_not_disturb, activity=discord.CustomActivity("Watching Skye-net...", type=discord.ActivityType.watching))
 	await discord_bot.tree.sync()
 	print(f"{discord_bot.user} is ready and online >:)")
-	os.system(script_kill)
-	os.system(script_clear_nohup)
-	os.system(script_run)
-	print("Starting Skye-net...")
+	if not bot_ready:
+		# First time starting
+		restart_skyenet()
+		print("Starting Skye-net...")
+	bot_ready = True
 
 def send_message(channel:discord.abc.Messageable, message:str) -> None:
 	if len(message) > 2000:  # discord won't allow longer than 2000 characters, so split it up
